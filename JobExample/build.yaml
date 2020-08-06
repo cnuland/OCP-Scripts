@@ -1,0 +1,39 @@
+apiVersion: v1
+kind: List
+items:
+- apiVersion: image.openshift.io/v1
+  kind: ImageStream
+  metadata:
+    name: <name>-job
+  spec:
+    lookupPolicy:
+      local: true
+- apiVersion: build.openshift.io/v1
+  kind: BuildConfig
+  metadata:
+    name: <name>-build
+  spec:
+    output:
+      to:
+        kind: ImageStreamTag
+        name: <name>-job:latest
+    source:
+      type: Git
+      git: 
+        uri: "https://github.com/cnuland/..."
+        ref: "master"
+      contextDir: "..."
+    strategy:
+      dockerStrategy:
+        buildArgs:
+        - name: OCP_VERSION
+          value: "4.3"
+        from:
+          kind: ImageStreamTag
+          name: ubi8:latest
+      type: Docker
+    postCommit: {}
+    triggers:
+    - type: ConfigChange
+    - imageChange: {}
+      type: ImageChange

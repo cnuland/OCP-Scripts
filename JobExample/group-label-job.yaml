@@ -1,0 +1,24 @@
+apiVersion: batch/v1beta1
+kind: CronJob
+metadata:
+  name: group-label-job
+spec:
+  schedule: "*/1 * * * *"  
+  jobTemplate:             
+    spec:
+      template:
+        metadata:
+          labels:          
+            parent: "cron-group-label-job"
+        spec:
+          containers:
+          - name: group-label-job
+            env:
+            - name: TOKEN
+              valueFrom:
+                secretKeyRef:
+                  name: <secret-name>
+                  key: token 
+            image: group-labeling-job:latest
+            command: ["python3", "<python-file>"]
+          restartPolicy: OnFailure
