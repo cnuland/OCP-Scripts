@@ -1,0 +1,24 @@
+apiVersion: batch/v1beta1
+kind: CronJob
+metadata:
+  name: <name>-job
+spec:
+  schedule: "*/1 * * * *"  
+  jobTemplate:             
+    spec:
+      template:
+        metadata:
+          labels:          
+            parent: "<name>-job"
+        spec:
+          containers:
+          - name: <name>-job
+            env:
+            - name: TOKEN
+              valueFrom:
+                secretKeyRef:
+                  name: <secret-name>
+                  key: token 
+            image: <name>-job:latest
+            command: ["python3", "<python-file>"]
+          restartPolicy: OnFailure
