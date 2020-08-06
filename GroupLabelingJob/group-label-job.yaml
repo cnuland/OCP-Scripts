@@ -1,7 +1,7 @@
 apiVersion: batch/v1beta1
 kind: CronJob
 metadata:
-  name: <name>-job
+  name: group-label-job
 spec:
   schedule: "*/1 * * * *"  
   jobTemplate:             
@@ -9,16 +9,16 @@ spec:
       template:
         metadata:
           labels:          
-            parent: "<name>-job"
+            parent: "cron-group-label-job"
         spec:
           containers:
-          - name: <name>-job
+          - name: group-label-job
             env:
             - name: TOKEN
               valueFrom:
                 secretKeyRef:
-                  name: <secret-name>
-                  key: token 
-            image: <name>-job:latest
-            command: ["python3", "<python-file>"]
+                  name: group-label-token
+                  key: token
+            image: group-labeling-job:latest
+            command: ["python3", "group-label.py"]
           restartPolicy: OnFailure

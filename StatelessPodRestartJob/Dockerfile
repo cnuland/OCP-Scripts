@@ -4,7 +4,7 @@ USER 0
 RUN mkdir /app
 ENV HOME=/app
 WORKDIR /app
-ADD <python-file> ./
+ADD hard-pod-restart.py ./
 RUN rm /etc/rhsm-host && \
     chmod 775 /app && \
     yum repolist > /dev/null && \

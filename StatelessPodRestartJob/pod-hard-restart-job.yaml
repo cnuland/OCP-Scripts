@@ -1,0 +1,24 @@
+apiVersion: batch/v1beta1
+kind: CronJob
+metadata:
+  name: pod-hard-restart-job
+spec:
+  schedule: "*/1 * * * *"  
+  jobTemplate:             
+    spec:
+      template:
+        metadata:
+          labels:          
+            parent: "cron-pod-hard-restart-job"
+        spec:
+          containers:
+          - name: pod-hard-restart-job
+            env:
+            - name: TOKEN
+              valueFrom:
+                secretKeyRef:
+                  name: pod-hard-restart-token
+                  key: token
+            image: pod-hard-restart-job:latest
+            command: ["python3", "pod-hard-restart.py"]
+          restartPolicy: OnFailure

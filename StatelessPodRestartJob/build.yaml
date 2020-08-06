@@ -4,25 +4,25 @@ items:
 - apiVersion: image.openshift.io/v1
   kind: ImageStream
   metadata:
-    name: <name>-job
+    name: pod-hard-restart-job
   spec:
     lookupPolicy:
       local: true
 - apiVersion: build.openshift.io/v1
   kind: BuildConfig
   metadata:
-    name: <name>-build
+    name: pod-hard-restart-build
   spec:
     output:
       to:
         kind: ImageStreamTag
-        name: <name>-job:latest
+        name: pod-hard-restart-job:latest
     source:
       type: Git
       git: 
-        uri: "https://github.com/cnuland/..."
+        uri: "https://github.com/cnuland/OCP-Scripts"
         ref: "master"
-      contextDir: "..."
+      contextDir: "StatelessPodRestartJob/"
     strategy:
       dockerStrategy:
         buildArgs:
