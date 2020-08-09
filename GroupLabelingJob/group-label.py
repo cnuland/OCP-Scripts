@@ -1,31 +1,54 @@
 import subprocess
 import os
 import json
+import requests
+import sys
 
-def bash_command_pipe(cmd): 
-  ps = subprocess.Popen(cmd,shell=True,stdout=subprocess.PIPE,stderr=subprocess.STDOUT)
-  return ps.communicate()[0]
+session = requests.Session()
+session.verify = False
+session.headers = {
+    'Accept': 'application/json',
+}
 
 def bash_command(cmd): 
-  return subprocess.check_output(cmd)
+  ps = subprocess.Popen(cmd,shell=True,stdout=subprocess.PIPE,stderr=subprocess.STDOUT,universal_newlines=True)
+  return ps.communicate()[0]
 
-token = os.getenv('TOKEN')
-bash_command_pipe('oc login https://kubernetes.default.svc.cluster.local --token="{}" --insecure-skip-tls-verify=true > /dev/null 2>&1'.format(token))
-data = bash_command_pipe("oc get cm -n namespace-configuration-operator group-labels -o json | jq -r \".data[]\"")
-groups = json.loads(data)
-print("Checking labels on Groups:")
+token = bash_command("cat /var/run/secrets/kubernetes.io/serviceaccount/token")
+if token is not None:
+  session.headers['Authorization'] = 'Bearer {0}'.format(token)
+
+# URL Base
+base_url = "https://kubernetes.default.svc.cluster.local/api/v1"
+users_base_url = "https://kubernetes.default.svc.cluster.local/apis/user.openshift.io/v1"
+namespace = bash_command("cat /var/run/secrets/kubernetes.io/serviceaccount/namespace")
+cm = session.get(base_url + "/namespaces/{}/configmaps/group-labels".format(namespace))
+cm.raise_for_status()
+
+if cm.status_code != 200:
+  print("Failed to get ConfigMap: {}".format(cm.status_code))
+  sys.exit(1)
+
+groups = json.loads(cm.json()["data"]["group-labels.json"])
+print("Checking labels in Groups:")
 for group in groups:
   name = group["name"]
-  print(name)
-  oc=bash_command_pipe('oc get group {} -o name --ignore-not-found=true | cut -c 25-'.format(name))
-  print(oc)
-  if oc:
+  dest_group = session.get(users_base_url + "/groups/{}".format(name))
+  if dest_group.status_code == 200:
+    data = dest_group.json()
     labels = group["labels"]
     for label in labels:
       print("Checking for label:{}".format(label))
       key = label["key"]
       value = label["value"]
-      oc = bash_command_pipe('oc get group {} --template "{{{{ .metadata.labels.{} }}}}"'.format(name, key))
-      if "<no value>" in str(oc):
+      found = False
+      if "labels" in data["metadata"]:
+        for dest_label in data["metadata"]["labels"]:
+          if key in dest_label:
+            found = True
+      if not found:
+        session.headers["Content-Type"] = "application/merge-patch+json"
         print("Adding labels to group {}".format(name))
-        bash_command_pipe('oc label group {} {}={}'.format(name, key, value))
+        patch_request = session.patch(url="{}/groups/{}".format(users_base_url, name), data="{{\"metadata\":{{\"labels\":{{\"{key}\":\"{value}\"}}}}}}".format(key=key, value=value))
+        if patch_request.status_code != 200:
+          print("Error updating labels: Status code: {0}".format(patch_request.status_code))

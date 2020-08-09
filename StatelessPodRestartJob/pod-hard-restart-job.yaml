@@ -14,11 +14,13 @@ spec:
           containers:
           - name: pod-hard-restart-job
             env:
+            - name: NAMESPACE
+              value: test
             - name: TOKEN
               valueFrom:
                 secretKeyRef:
                   name: pod-hard-restart-token
                   key: token
             image: pod-hard-restart-job:latest
-            command: ["python3", "pod-hard-restart.py"]
+            command: ["python3", "hard-pod-restart.py"]
           restartPolicy: OnFailure
